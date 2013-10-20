@@ -25,8 +25,10 @@ panelHeight = height
 
 blockSize = width `div` 10
 fblockSize = toFloat blockSize
-maxMovesPerSecond = 20
+tapDelay = 0.075
+maxMovesPerSecond = 320
 fps = 32
+setDelay = 0.5
 
 hardDropKey : Int
 hardDropKey = toCode ' '
@@ -52,8 +54,11 @@ game = { board=emptyBoard,
          canHold=True,
          arrow=(0,0), 
          keys=[],
+         tap=False,
+         tapped= (False, 0),
          keyDelay=False,
          forceDelay=False,
+         setDelay = 0,
          timestamp=0,
          level=1, 
          score=0,
@@ -69,8 +74,7 @@ getPoints x =
     4 -> 1000
     _ -> 0
 
-handle (arrow, keys, t, next, init) = smoothControl t keys . cleanup . setPiece next t . autoDrop t . arrowControls arrow . keyControls keys . hold keys next . startup init
-
+handle (arrow, keys, t, next, init) = smoothControl t keys . cleanup keys . setPiece next t . autoDrop t . arrowControls arrow . keyControls keys . hold keys next . startup init
 hold ks n game = 
   let doHold = any ((==) holdKey) ks in
   if doHold then (swapHold (getPiece n) game) else game
@@ -103,21 +107,35 @@ startup (p::pieces) game =
 
 smoothControl t ks game =
   case ks of
-    [] -> {game | timestamp <- inSeconds t, forceDelay <- False}
-    _ -> 
-        let time = inSeconds t in
+    [] -> {game | keyDelay <- False, timestamp <- inSeconds t, forceDelay <- False, tap <- False, tapped <- (False, 0)}
+    _ ->
+      let time = inSeconds t in
+        doKeyDelay time . doTapDelay time <| game
+
+doTapDelay time game = 
+   case game.tapped of
+     (False, _) -> {game| tapped <- (True, time)}
+     (True, at) -> 
+        let tap = (time - at) < tapDelay in
+        {game| tap <- tap}
+
+doKeyDelay time game =
         let wait = (time - game.timestamp) < (1/maxMovesPerSecond) in
         if wait 
            then {game | keyDelay <- True} 
            else {game | keyDelay <- False, timestamp <- time}
 
-cleanup game =
+cleanup keys game =
   let (board', cleared) = clearBoard game.board in
   let points = getPoints cleared in
   let score = game.score + points in
   let lines = game.lines + cleared in
   let level = toFloat <| (lines `div` 10) + 1 in
-  {game| board <- board', score <- score, lines <- lines, level <- level}
+  {game| board <- board', 
+         score <- score, 
+         lines <- lines, 
+         level <- level,
+         keys <- keys}
 
 autoDrop t game =
   let time = (inSeconds t) in
@@ -127,12 +145,14 @@ autoDrop t game =
       False -> game
       True ->
        let set = checkSet . toGameState <| game in
-       {next | tick <- time, set <- set}
+       let delay = if (set && not game.set) then time+setDelay else 0 in
+       {next | tick <- time, set <- set, setDelay <- delay}
 
 setPiece n t game =
   case game.set of
     False -> game
     True ->
+      if (game.setDelay > (inSeconds t)) then game else
       let next = head game.preview in
       let preview = (tail game.preview) ++ [getPiece n] in
       let board' = insertTetromino (game.falling) (game.board) in
@@ -172,7 +192,7 @@ forceControl c game =
   {game | board <- board', falling <- (tr', color)}
   
 doControl c game =
-  if (game.forceDelay || game.keyDelay) then game else
+  if (game.forceDelay || game.keyDelay || game.tap) then game else
   case c of
    Nothing -> game
    Just c ->
@@ -182,7 +202,6 @@ doControl c game =
 
 isForcedDelay c =
   case c of
-    Rotate _ -> True
     HardDrop -> True
     _ -> False
 
