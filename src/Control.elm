@@ -52,7 +52,9 @@ rotate rot tr =
       let ((minX, minY), (maxX, maxY)) = bounds tr in
       let rows = maxY - minY in
       let cols = maxX - minX in
-      let rt (c, r) = (((rows)-(r-minY))+minX, (c-minX)+minY) in
+      let (rC, cC) = (rows `div` 2, (cols `div` 2)) in
+      let off = if rC > cC then -rC else cC in
+      let rt (c, r) = (((rows)-(r-minY))+(minX+off), (c-minX)+(minY-off)) in
       map rt tr
 
 -- Given a Tetromino, return the bounding box that encompasses
@@ -94,7 +96,7 @@ isValidState : GameState -> Bool
 isValidState (board, tr) = 
   let noCollision = foldr (\loc acc -> (not (member loc board)) && acc) True tr in
   let ((minX, minY), (maxX, maxY)) = bounds tr in
-  let inBounds = minX >= 0 && minY >= 0 && maxX < boardWidth && maxY < boardHeight in
+  let inBounds = minX >= 0 && minY >= -2 && maxX < boardWidth && maxY < boardHeight in
   noCollision && inBounds
   
 checkSet : GameState -> Bool
@@ -112,4 +114,15 @@ forceControl (board, tr) control =
    MoveRight -> (board, right tr)
    Drop -> (board, drop tr)
    HardDrop -> hardDrop (board, tr)
-   Rotate r -> (board, rotate r tr)
+   Rotate r -> coerceRotate (board, rotate r tr)
+   
+coerceRotate : GameState -> GameState
+coerceRotate state =
+  case isValidState state of
+    True -> state
+    False -> 
+      let (board, tr) = state in
+      let tryLeft = (board, left tr) in
+      let tryRight = (board, right tr) in
+      if isValidState tryLeft then tryLeft 
+        else tryRight

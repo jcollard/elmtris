@@ -15,14 +15,16 @@ boardHeight = 2*boardWidth
 emptyBoard = empty
 
 asElement : Board -> Int -> Element
-asElement b width = 
-  let fWidth = toFloat width in
-  let height = 2*width in
-  let fHeight = toFloat height in
-  let blockSize = fWidth/boardWidth in
+asElement b blockSize = 
+  let width = blockSize*boardWidth in
+  let height = blockSize*boardHeight in
+  let fWidth = (toFloat width) in
+  let fHeight = (toFloat height) in
+  let fHeight = 2*fWidth in
+  let fblockSize = toFloat blockSize in
   let background = filled black <| rect fWidth fHeight in
-  let offset = (-(fWidth/2)+(blockSize/2), (fHeight/2)-(blockSize/2)) in
-  let blocks = move offset <| Dict.foldr (accForm blockSize) (filled white <| rect 0 0) b in
+  let offset = (-(fWidth/2)+(fblockSize/2), (fHeight/2)-(fblockSize/2)) in
+  let blocks = move offset <| Dict.foldr (accForm fblockSize) (filled white <| rect 0 0) b in
   collage width height [background, blocks]
   
 insertTetromino : (Tetromino, TetrisColor) -> Board -> Board  
