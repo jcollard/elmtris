@@ -20,11 +20,12 @@ pieceDict : Dict Int Piece
 pieceDict = fromList . zip [0..6] <| pieces
 pieces : [Piece]
 pieces = 
-  zip [line, square, zpiece, spiece, jpiece, lpiece, tpiece]
+  zip (map (shift (4, 0)) [line, square, zpiece, spiece, jpiece, lpiece, tpiece])
       [Red,  Orange, Yellow, Green,  Blue,   Indigo, Violet]
 
 getPiece : Int -> Piece
 getPiece n = findWithDefault (head pieces) n pieceDict
+
 game = { board=emptyBoard, 
          falling=(getPiece 0), 
          arrow=(0,0), 
@@ -53,10 +54,10 @@ autoDrop t n game =
   let set = checkSet (board, tr) in
   if set 
    then 
-    let (newBoard, lines) = clearBoard <| insertTetromino (tr, color) board in
+    let (newBoard, linesCleared) = clearBoard <| insertTetromino (tr, color) board in
     let nextPiece = getPiece n in
-    let totalLines = game.lines + lines in
-  {game | board <- newBoard, falling <- nextPiece, score <- game.score+(score lines), lines <- totalLines, level <- getLevel totalLines}
+    let totalLines = (game.lines + linesCleared) in
+  {game | board <- newBoard, falling <- nextPiece, score <- game.score+(score linesCleared), lines <- totalLines, level <- getLevel totalLines}
    else
     if drop then {next | tick <- time} else game
 
@@ -108,7 +109,7 @@ render game =
   flow G.right [asElement withPiece 300, scoreBoard game]
 
 
-inputSignal = lift4 (,,,) arrows keysDown (every (millisecond)) (range 0 6 (every millisecond))
+inputSignal = lift4 (,,,) arrows keysDown (every (second/32)) (range 0 6 (every millisecond))
 
 main = render <~ (foldp handle game inputSignal)
 
