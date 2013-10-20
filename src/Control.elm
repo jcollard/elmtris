@@ -1,9 +1,10 @@
 module Control where
 
+import open Util
 import open Location
 import open Tetromino
 import open Board
-import Dict (member)
+import Dict (empty, insert, member, toList, remove, fromList)
 
 data Control = MoveLeft
              | MoveRight
@@ -12,8 +13,6 @@ data Control = MoveLeft
              | Rotate Rotation
                
 type GameState = (Board, Tetromino)
-               
-             
 
 -- A bound is a pair of minimum and maximum locations. Typically,
 -- A bound is the containing box of a tetromino
@@ -53,7 +52,7 @@ rotate rot tr =
       let ((minX, minY), (maxX, maxY)) = bounds tr in
       let rows = maxY - minY in
       let cols = maxX - minX in
-      let rt (c, r) = ((rows)-r, c) in
+      let rt (c, r) = (((rows)-(r-minY))+minX, (c-minX)+minY) in
       map rt tr
 
 -- Given a Tetromino, return the bounding box that encompasses
@@ -63,20 +62,49 @@ bounds tr =
   let (xs, ys) = unzip tr in
   ( (minimum xs, minimum ys), (maximum xs, maximum ys))
 
+clearBoard : Board -> (Board, Int)
+clearBoard b = 
+  let cleared = map (checkLine b) (reverse [0..19]) in
+  let newBoard = clear 19 cleared b in
+  let linesCleared = length . filter (\x -> x) <| cleared in
+  (newBoard, linesCleared)
+  
+clear : Int -> [Bool] -> Board -> Board
+clear n xs b =
+  case xs of
+    [] -> b
+    (x::bs) -> 
+      case x of 
+        False -> clear (n-1) bs b
+        True ->
+          let toDrop = filter (\((_,y),_) -> y < n) . toList <| b in
+          let keep = filter (\((_,y),_) -> y > n) . toList <| b in
+          let drop ((x, y), color) = ((x, y+1), color) in
+          let dropped = map drop toDrop in
+          let cleared = fromList (dropped ++ keep) in
+          clear n bs cleared
+
+checkLine : Board -> Int -> Bool
+checkLine b n =
+  let locs = zip [0..9] (replicate 10 n) in
+  let check loc acc = (member loc b) && acc in
+  foldr check True locs
+
 isValidState : GameState -> Bool
 isValidState (board, tr) = 
   let noCollision = foldr (\loc acc -> (not (member loc board)) && acc) True tr in
   let ((minX, minY), (maxX, maxY)) = bounds tr in
-  let inBounds = minX >= 0 && minY >= 0 && maxX <= boardWidth && maxY <= boardHeight in
+  let inBounds = minX >= 0 && minY >= 0 && maxX < boardWidth && maxY < boardHeight in
   noCollision && inBounds
   
-  
+checkSet : GameState -> Bool
+checkSet = not . isValidState . (flip forceControl Drop)
   
 control : GameState -> Control -> GameState
 control s c = 
   let forced = forceControl s c in
   if (isValidState forced) then forced else s
-  
+                                            
 forceControl : GameState -> Control -> GameState
 forceControl (board, tr) control =
  case control of
