@@ -25,9 +25,9 @@ panelHeight = height
 
 blockSize = width `div` 10
 fblockSize = toFloat blockSize
-tapDelay = 0.075
-maxMovesPerSecond = 320
-fps = 32
+tapDelay = 0.10
+maxMovesPerSecond = 100
+fps = 100
 setDelay = 0.5
 
 hardDropKey : Int
@@ -145,7 +145,7 @@ autoDrop t game =
       False -> game
       True ->
        let set = checkSet . toGameState <| game in
-       let delay = if (set && not game.set) then time+setDelay else 0 in
+       let delay = if (set && not game.set) then time+setDelay else game.setDelay in
        {next | tick <- time, set <- set, setDelay <- delay}
 
 setPiece n t game =
@@ -196,6 +196,7 @@ doControl c game =
   case c of
    Nothing -> game
    Just c ->
+     if (isForcedDelay c && game.forceDelay) then game else
       let game' = forceControl c game in
       let game'' = if (isForcedDelay c) then {game' | forceDelay <- True} else game' in
       if (isSetControl c) then {game'' | set <- True} else game''
@@ -203,6 +204,7 @@ doControl c game =
 isForcedDelay c =
   case c of
     HardDrop -> True
+    Rotate _ -> True
     _ -> False
 
 isSetControl c =
