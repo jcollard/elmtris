@@ -14,5 +14,5 @@ toColor c =
     Blue -> lightBlue
     Indigo -> darkBlue
     Violet -> purple
-    Shadow -> rgba 125 125 125 0.5
+    Shadow -> rgba 255 255 255 0.10
     

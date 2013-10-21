@@ -25,7 +25,7 @@ panelHeight = height
 
 blockSize = width `div` 10
 fblockSize = toFloat blockSize
-tapDelay = 0.10
+tapDelay = 0.08
 maxMovesPerSecond = 100
 fps = 100
 setDelay = 0.5
@@ -52,8 +52,6 @@ game = { board=emptyBoard,
          preview=[],
          hold=Nothing,
          canHold=True,
-         arrow=(0,0), 
-         keys=[],
          tap=False,
          tapped= (False, 0),
          keyDelay=False,
@@ -174,16 +172,23 @@ getKeyControl k =
 arrowControls arr game = 
   let x = arr.x in
   let y = arr.y in
-  (flip doControl) game <| getArrowControl (x, y)
+  foldr doControl game <| getArrowControl (x, y)
       
-getArrowControl : (Int, Int) -> Maybe Control         
-getArrowControl arrow =  
-  case arrow of
-    (-1, 0) -> Just MoveLeft
-    (1, 0) -> Just MoveRight
-    (0, -1) -> Just Drop
-    (0, 1) -> Just <| Rotate CW
-    _ -> Nothing
+getArrowControl : (Int, Int) -> [Maybe Control]
+getArrowControl (x, y) =  
+  let moveX = 
+        case x of
+          -1 -> Just MoveLeft
+          1 -> Just MoveRight
+          0 -> Nothing
+  in
+   let moveY =
+         case y of
+           -1 -> Just Drop
+           1 -> Just . Rotate <| CW
+           0 -> Nothing
+   in
+    [moveX, moveY]
   
 forceControl c game =  
   let board = game.board in
@@ -192,7 +197,7 @@ forceControl c game =
   {game | board <- board', falling <- (tr', color)}
   
 doControl c game =
-  if (game.forceDelay || game.keyDelay || game.tap) then game else
+  if (game.keyDelay || game.tap) then game else
   case c of
    Nothing -> game
    Just c ->
