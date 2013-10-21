@@ -31,6 +31,9 @@ maxMovesPerSecond = 100
 fps = 100
 setDelay = 0.5
 
+restartKey : Int
+restartKey = toCode 'r'
+
 pauseKey : Int
 pauseKey = toCode 'p'
 
@@ -77,11 +80,16 @@ getPoints x =
     4 -> 1000
     _ -> 0
 
-handle (arrow, keys, t, next, init) = smoothControl t keys . cleanup keys . setPiece next t . autoDrop t . arrowControls arrow . keyControls keys . hold keys next . startup init . pause keys
+handle (arrow, keys, t, next, init) = smoothControl t keys . cleanup keys . setPiece next t . autoDrop t . arrowControls arrow . keyControls keys . hold keys next . startup init . restartGame keys . pause keys 
+
 hold ks n game = 
   let doHold = any ((==) holdKey) ks in
   if doHold then (swapHold (getPiece n) game) else game
-                                       
+
+restartGame keys g =                                                   
+  if g.forceDelay then g else
+  if (any ((==)restartKey) keys) then {game| paused <- False, forceDelay <- True} else g
+
 pause keys game =                                                   
   if game.forceDelay then game else
   if (any ((==)pauseKey) keys) then {game| paused <- not game.paused, forceDelay <- True} else game
@@ -263,7 +271,8 @@ pauseScreenText game =
                   "Up Arrow - Rotate",
                   "Space - Drop",
                   "X - Hold / Swap current piece",
-                  "P - Toggle this screen"] in
+                  "P - Toggle this screen",
+                  "R - New Game"] in
   let title = text . Text.height 28 . bold . toText <| "Elmtris" in
   flow down [spacer 10 10, title, spacer 50 50, contents]
 
