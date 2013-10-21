@@ -13,8 +13,9 @@ import Random (range)
 import Char (toCode, fromCode)
 import Graphics.Element as G
 import Graphics.Collage as C
-
+import Text
 type Piece = (Tetromino, TetrisColor)
+
 
 width = 300
 height = 2*width
@@ -29,6 +30,9 @@ tapDelay = 0.08
 maxMovesPerSecond = 100
 fps = 100
 setDelay = 0.5
+
+pauseKey : Int
+pauseKey = toCode 'p'
 
 hardDropKey : Int
 hardDropKey = toCode ' '
@@ -62,7 +66,8 @@ game = { board=emptyBoard,
          score=0,
          lines=0,
          tick=0,
-         set=False}
+         set=False,
+         paused=True}
 
 getPoints x =
   case x of
@@ -72,11 +77,15 @@ getPoints x =
     4 -> 1000
     _ -> 0
 
-handle (arrow, keys, t, next, init) = smoothControl t keys . cleanup keys . setPiece next t . autoDrop t . arrowControls arrow . keyControls keys . hold keys next . startup init
+handle (arrow, keys, t, next, init) = smoothControl t keys . cleanup keys . setPiece next t . autoDrop t . arrowControls arrow . keyControls keys . hold keys next . startup init . pause keys
 hold ks n game = 
   let doHold = any ((==) holdKey) ks in
   if doHold then (swapHold (getPiece n) game) else game
                                        
+pause keys game =                                                   
+  if game.forceDelay then game else
+  if (any ((==)pauseKey) keys) then {game| paused <- not game.paused, forceDelay <- True} else game
+
 swapHold piece game = 
   case game.canHold of
     False -> game
@@ -191,13 +200,14 @@ getArrowControl (x, y) =
     [moveX, moveY]
   
 forceControl c game =  
+  if game.paused then game else
   let board = game.board in
   let (tr, color) = game.falling in
   let (board', tr') = control (board, tr) c in
   {game | board <- board', falling <- (tr', color)}
   
 doControl c game =
-  if (game.keyDelay || game.tap) then game else
+  if (game.paused || game.keyDelay || game.tap) then game else
   case c of
    Nothing -> game
    Just c ->
@@ -230,10 +240,33 @@ render game =
   let withPiece = insertTetromino (game.falling) (game.board) in
   let boardDisplay = asElement withPiece blockSize in
   let boardWithShadow = shadow (game.falling) (game.board) boardDisplay in
+  if game.paused then pauseScreen game else
   flow down [spacer 10 10, 
              flow G.right [holdBoard game, spacer 10 10, 
                            boardWithShadow, spacer 10 10, 
                            previewBoard game]]
+
+pauseScreen game = 
+  let w = width+2*panelWidth in
+  let h = height in
+  let elem = container w h middle <| pauseScreenText game in
+  let form = collage w h [C.toForm elem] in
+  form
+
+pauseScreenText game = 
+  let w = width in
+  let h = 30 in
+  let format = map (container w h G.topLeft . plainText) in
+  let contents = flow down . format <|
+                 [ "Instructions:",
+                  "Left, Down, Right Arrow - Move",
+                  "Up Arrow - Rotate",
+                  "Space - Drop",
+                  "X - Hold / Swap current piece",
+                  "P - Toggle this screen"] in
+  let title = text . Text.height 28 . bold . toText <| "Elmtris" in
+  flow down [spacer 10 10, title, spacer 50 50, contents]
+
 
 shadow (tr, color) board boardDisplay =
   let (_, shadow) = hardDrop (board, tr) in
