@@ -289,9 +289,7 @@ pauseScreenText game =
   let h = 30 in
   let format = map (container w h G.topLeft . plainText) in
   let contents = flow down . format <|
-                 [ "Game Over",
-                   
-                  "Left, Down, Right Arrow - Move",
+                 ["Left, Down, Right Arrow - Move",
                   "Up Arrow - Rotate",
                   "Space - Drop",
                   "X - Hold / Swap current piece",
