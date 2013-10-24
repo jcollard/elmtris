@@ -52,10 +52,27 @@ rotate rot tr =
       let ((minX, minY), (maxX, maxY)) = bounds tr in
       let rows = maxY - minY in
       let cols = maxX - minX in
-      let (rC, cC) = (rows `div` 2, (cols `div` 2)) in
-      let off = if rC > cC then -rC else cC in
-      let rt (c, r) = (((rows)-(r-minY))+(minX+off), (c-minX)+(minY-off)) in
-      map rt tr
+      let (rC, cC) = centerOfMass tr in
+      let trans = shift (-cC, -rC) tr in
+      let off = if rows == cols || rows == 3 then -1 else 0 in
+      let rt (c, r) = (-r, c+off) in
+      let rotated = map rt trans in
+      shift (cC, rC) rotated
+
+dimensions : Tetromino -> (Int, Int)
+dimensions tr =
+  let ((minX, minY), (maxX, maxY)) = bounds tr in
+  (maxY - minY, maxX - minX)
+  
+round' x =  
+  let fx = floor x in
+  if (x - toFloat fx) > 0.50 then fx+1 else fx
+  
+centerOfMass : Tetromino -> Location
+centerOfMass tr =
+  let (rows, cols) = dimensions tr in
+  let (sumX, sumY, tot) = foldr (\(x0,y0) (x1,y1,t) -> ((toFloat x0)+x1, (toFloat y0)+y1, t+1)) (0,0,0) tr in
+  (round <| sumY / tot, round' <| sumX / tot)
 
 -- Given a Tetromino, return the bounding box that encompasses
 -- all of its locations

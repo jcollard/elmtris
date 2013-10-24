@@ -167,6 +167,7 @@ setPiece n t game =
   case game.set of
     False -> game
     True ->
+      if not . checkSet . toGameState <| game then game else
       if (game.setDelay > (inSeconds t)) then game else
       let next = head game.preview in
       let preview = (tail game.preview) ++ [getPiece n] in
@@ -323,7 +324,9 @@ inputSignal = lift5 (,,,,) arrows keysDown ticker (range 0 6 ticker) (randoms 6 
 
 main = render <~ (foldp handle game inputSignal)
 
+piece = rotate CW <| shift (0,1) zpiece
 
+--main = asText <| (centerOfMass piece, rotate CW piece, piece)
 
 randoms n low high sig = combine <| randoms' n low high sig
 
