@@ -70,7 +70,9 @@ game = { board=emptyBoard,
          lines=0,
          tick=0,
          set=False,
-         paused=True}
+         paused=True,
+         gameover=False
+       }
 
 getPoints x =
   case x of
@@ -80,7 +82,7 @@ getPoints x =
     4 -> 1000
     _ -> 0
 
-handle (arrow, keys, t, next, init) = smoothControl t keys . cleanup keys . setPiece next t . autoDrop t . arrowControls arrow . keyControls keys . hold keys next . startup init . restartGame keys . pause keys 
+handle (arrow, keys, t, next, init) = smoothControl t keys . cleanup keys . setPiece next t . autoDrop t . arrowControls arrow . keyControls keys . hold keys next . startup init . restartGame keys . pause keys
 
 hold ks n game = 
   let doHold = any ((==) holdKey) ks in
@@ -173,7 +175,8 @@ setPiece n t game =
       let preview = (tail game.preview) ++ [getPiece n] in
       let board' = insertTetromino (game.falling) (game.board) in
       let game' = {game | board <- board', falling <- next, preview <- preview} in
-      {game'| time <- (inSeconds t), set <- False, canHold <- True}
+      let gameover = not . isValidState . toGameState <| game' in
+      {game'| time <- (inSeconds t), set <- False, canHold <- True, gameover <- gameover}
 
 toGameState game = (game.board, fst <| game.falling)
 
@@ -238,6 +241,7 @@ isSetControl c =
 
 label l r = flow G.right [plainText l, spacer 5 5, asText r]
   
+
 scoreBoard game = 
   let board = flow down [label "Score: " game.score,
                          label "Level: " game.level,
@@ -250,6 +254,7 @@ render game =
   let boardDisplay = asElement withPiece blockSize in
   let boardWithShadow = shadow (game.falling) (game.board) boardDisplay in
   if game.paused then pauseScreen game else
+    if game.gameover then gameoverScreen game else
   flow down [spacer 10 10, 
              flow G.right [holdBoard game, spacer 10 10, 
                            boardWithShadow, spacer 10 10, 
@@ -262,12 +267,30 @@ pauseScreen game =
   let form = collage w h [C.toForm elem] in
   form
 
+gameoverScreen game = 
+  let w = width+2*panelWidth in
+  let h = height in
+  let elem = container w h middle <| gameoverScreenText game in
+  let form = collage w h [C.toForm elem] in
+  form
+
+gameoverScreenText game = 
+  let w = width in
+  let h = 30 in
+  let contents = flow down [label "Score: " game.score, 
+                          label "Level: " game.level,
+                          label "Lines: " game.lines,
+                          label "Press R to play again" ""] in
+  let title = text . Text.height 28 . bold . toText <| "Game Over" in
+  flow down [spacer 10 10, title, spacer 50 50, contents]
+
 pauseScreenText game = 
   let w = width in
   let h = 30 in
   let format = map (container w h G.topLeft . plainText) in
   let contents = flow down . format <|
-                 [ "Instructions:",
+                 [ "Game Over",
+                   
                   "Left, Down, Right Arrow - Move",
                   "Up Arrow - Rotate",
                   "Space - Drop",

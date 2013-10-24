@@ -54,6 +54,7 @@ rotate rot tr =
       let cols = maxX - minX in
       let (rC, cC) = centerOfMass tr in
       let trans = shift (-cC, -rC) tr in
+      --Stupid fix for squares and lines
       let off = if rows == cols || rows == 3 then -1 else 0 in
       let rt (c, r) = (-r, c+off) in
       let rotated = map rt trans in
