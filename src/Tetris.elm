@@ -279,10 +279,9 @@ gameoverScreenText game =
   let h = 30 in
   let contents = flow down [label "Score: " game.score, 
                           label "Level: " game.level,
-                          label "Lines: " game.lines,
-                          label "Press R to play again" ""] in
+                          label "Lines: " game.lines] in
   let title = text . Text.height 28 . bold . toText <| "Game Over" in
-  flow down [spacer 10 10, title, spacer 50 50, contents]
+  flow down [spacer 10 10, title, spacer 50 50, contents, plainText "Press R to play again"]
 
 pauseScreenText game = 
   let w = width in
