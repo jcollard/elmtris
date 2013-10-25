@@ -3,12 +3,12 @@ function startup() {
 
     var root = "snd/";
     var audio = new Audio("snd/theme.mp3");
-    audio.volume = 0.25;
+    audio.volume = 0.10;
     var click = new Audio("snd/click2.wav");
     click.volume = 0.50;
 
     var swap = new Audio("snd/woosh.wav");
-    swap.volume = 0.25;
+    swap.volume = 0.50;
 
     var paused = true;
     var tetris = Elm.fullscreen(Elm.Tetris);

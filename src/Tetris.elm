@@ -79,7 +79,7 @@ game = { board=emptyBoard,
          gameover=False,
          music=True,
          click=False,
-         swapSound=False
+         dropSound=False
        }
 
 getPoints x =
@@ -90,13 +90,18 @@ getPoints x =
     4 -> 1000
     _ -> 0
 
-handle (arrow, keys, t, next, init) = smoothControl t keys . cleanup keys . setPiece next t . autoDrop t . arrowControls arrow . keyControls keys . hold keys next . startup init . restartGame keys . pause keys . toggleMusic keys . clear
+handle (arrow, keys, t, next, init) = smoothControl t keys . cleanup keys . setPiece next t . autoDrop t . arrowControls arrow . keyControls keys . hold keys next . startup init . restartGame keys . pause keys . toggleMusic keys . dropSound keys . clear
 
-clear game = {game | click <- False, swapSound <- False}
+clear game = {game | click <- False, dropSound <- False}
 
 hold ks n game = 
   let doHold = any ((==) holdKey) ks in
   if doHold then (swapHold (getPiece n) game) else game
+
+
+dropSound keys g =
+  if g.forceDelay then g else
+    if (any ((==)hardDropKey) keys) then {g | dropSound <- True} else g
 
 restartGame keys g =                                                   
   if g.forceDelay then g else
@@ -119,10 +124,8 @@ swapHold piece game =
                         canHold <- False} in
       case game.hold of
         Nothing -> {next| falling <- (head game.preview), 
-                          preview <- ((tail game.preview) ++ [piece]),
-                          swapSound <- True}
-        Just held -> {next| falling <- held,
-                            swapSound <- True}
+                          preview <- ((tail game.preview) ++ [piece])}
+        Just held -> {next| falling <- held}
                      
 reset (tr, color) =
   let ((minX, minY), (_, maxY)) = bounds tr in
@@ -370,7 +373,7 @@ randoms' n low high sig =
                                                
 music g = g.music && (not g.paused)
 click g = g.music && g.click && (not g.paused)
-swapSound g = g.music && g.swapSound && (not g.paused)
+swapSound g = g.music && g.dropSound && (not g.paused)
 
 
 playTheme = lift (JS.fromBool . music) mainSignal
