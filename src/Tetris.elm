@@ -1,5 +1,7 @@
 module Tetris where
 
+import Mouse
+import JavaScript as JS
 import open Util
 import open Tetromino
 import open TetrisColor
@@ -43,6 +45,9 @@ hardDropKey = toCode ' '
 holdKey : Int
 holdKey = toCode 'x'
 
+toggleMusicKey : Int
+toggleMusicKey = toCode 'm'
+
 pieceDict : Dict Int Piece
 pieceDict = fromList . zip [0..6] <| pieces
 pieces : [Piece]
@@ -71,7 +76,10 @@ game = { board=emptyBoard,
          tick=0,
          set=False,
          paused=True,
-         gameover=False
+         gameover=False,
+         music=True,
+         click=False,
+         swapSound=False
        }
 
 getPoints x =
@@ -82,7 +90,9 @@ getPoints x =
     4 -> 1000
     _ -> 0
 
-handle (arrow, keys, t, next, init) = smoothControl t keys . cleanup keys . setPiece next t . autoDrop t . arrowControls arrow . keyControls keys . hold keys next . startup init . restartGame keys . pause keys
+handle (arrow, keys, t, next, init) = smoothControl t keys . cleanup keys . setPiece next t . autoDrop t . arrowControls arrow . keyControls keys . hold keys next . startup init . restartGame keys . pause keys . toggleMusic keys . clear
+
+clear game = {game | click <- False, swapSound <- False}
 
 hold ks n game = 
   let doHold = any ((==) holdKey) ks in
@@ -96,6 +106,11 @@ pause keys game =
   if game.forceDelay then game else
   if (any ((==)pauseKey) keys) then {game| paused <- not game.paused, forceDelay <- True} else game
 
+toggleMusic keys game =                                                   
+  if game.forceDelay then game else
+  if (any ((==)toggleMusicKey) keys) then {game| music <- not game.music, forceDelay <- True} else game
+
+
 swapHold piece game = 
   case game.canHold of
     False -> game
@@ -104,8 +119,10 @@ swapHold piece game =
                         canHold <- False} in
       case game.hold of
         Nothing -> {next| falling <- (head game.preview), 
-                          preview <- ((tail game.preview) ++ [piece])}
-        Just held -> {next| falling <- held}
+                          preview <- ((tail game.preview) ++ [piece]),
+                          swapSound <- True}
+        Just held -> {next| falling <- held,
+                            swapSound <- True}
                      
 reset (tr, color) =
   let ((minX, minY), (_, maxY)) = bounds tr in
@@ -193,7 +210,8 @@ getKeyControl k =
 arrowControls arr game = 
   let x = arr.x in
   let y = arr.y in
-  foldr doControl game <| getArrowControl (x, y)
+  let game' = foldr doControl game <| getArrowControl (x, y) in
+  if y == 1 then {game'| click <- True} else game'
       
 getArrowControl : (Int, Int) -> [Maybe Control]
 getArrowControl (x, y) =  
@@ -293,6 +311,7 @@ pauseScreenText game =
                   "Space - Drop",
                   "X - Hold / Swap current piece",
                   "P - Toggle this screen",
+                  "M - Toggle Music",
                   "R - New Game"] in
   let title = text . Text.height 28 . bold . toText <| "Elmtris" in
   flow down [spacer 10 10, title, spacer 50 50, contents]
@@ -342,18 +361,31 @@ ticker = every <| second/fps
 
 inputSignal = lift5 (,,,,) arrows keysDown ticker (range 0 6 ticker) (randoms 6 0 6 ticker)
 
-main = render <~ (foldp handle game inputSignal)
-
 piece = rotate CW <| shift (0,1) zpiece
-
---main = asText <| (centerOfMass piece, rotate CW piece, piece)
 
 randoms n low high sig = combine <| randoms' n low high sig
 
 randoms' n low high sig =
   if n <= 0 then [] else (range low high sig)::(randoms' (n-1) low high sig)  
-    
-    
                                                
-                                               
---main = asText <~ (randoms 5 0 6)
+music g = g.music && (not g.paused)
+click g = g.music && g.click && (not g.paused)
+swapSound g = g.music && g.swapSound && (not g.paused)
+
+
+playTheme = lift (JS.fromBool . music) mainSignal
+foreign export jsevent "play"
+    playTheme : Signal JS.JSBool
+    
+playClick = lift (JS.fromBool . click) mainSignal
+foreign export jsevent "click"
+    playClick : Signal JS.JSBool
+
+playSwap = lift (JS.fromBool . swapSound) mainSignal
+foreign export jsevent "swap"
+    playSwap : Signal JS.JSBool
+
+
+mainSignal = foldp handle game inputSignal
+
+main = render <~ mainSignal
