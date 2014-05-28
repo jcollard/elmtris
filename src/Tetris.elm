@@ -374,6 +374,14 @@ music g = g.music && (not g.paused)
 click g = g.music && g.click && (not g.paused)
 swapSound g = g.music && g.dropSound && (not g.paused)
 
+port playTheme : Signal Bool
+port playTheme = lift music mainSignal
+
+port playClick : Signal Bool
+port playClick = lift click mainSignal
+
+port playSwap : Signal Bool
+port playSwap = lift swapSound mainSignal
 
 mainSignal = foldp handle game inputSignal
 

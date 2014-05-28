@@ -13,36 +13,36 @@ function startup() {
     var paused = true;
     var tetris = Elm.fullscreen(Elm.Tetris);
 
-    tetris.recv('swap', function (event){
-	if(event.value){
+    tetris.ports.playSwap.subscribe(function (event){
+	if(event){
 	    swap.play();
 	}
     });
 
-    tetris.recv('click', function (event){
-	if(event.value){
+    tetris.ports.playClick.subscribe(function (event){
+	if(event){
 	    click.play();
 	}
     });
 
-tetris.recv('play', function (event){
+    tetris.ports.playTheme.subscribe(function (event){
     
-    if(!event.value) {
-	audio.pause();
-	paused = true;
-	return;
-    }
-    if(!audio){
-	audio = new Audio(root + "theme.mp3");
-	audio.addEventListener('timeupdate', function () {
-	    var sec = audio.currentTime;
-	    if(sec > 37.6)
-		audio.currentTime = 0.05;
+        if(!event) {
+	    audio.pause();
+	    paused = true;
+	    return;
+        }
+        if(!audio){
+	    audio = new Audio(root + "theme.mp3");
+	    audio.addEventListener('timeupdate', function () {
+	        var sec = audio.currentTime;
+	        if(sec > 37.6)
+		    audio.currentTime = 0.05;
 	    }, false);
-    }
-    audio.play();
-
-});
+        }
+        audio.play();
+        
+    });
 }
 
 window.onload = startup;
