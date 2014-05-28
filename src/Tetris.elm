@@ -1,14 +1,13 @@
 module Tetris where
 
 import Mouse
-import JavaScript as JS
-import open Util
-import open Tetromino
-import open TetrisColor
-import open Board
-import open Control
+import Util (..)
+import Tetromino (..)
+import TetrisColor (..)
+import Board (..)
+import Control (..)
 import Control
-import Dict (Dict, fromList, member, findWithDefault)
+import Dict (Dict, fromList, member, getOrElse)
 import Dict
 import Keyboard (arrows, keysDown)
 import Random (range)
@@ -30,7 +29,7 @@ blockSize = width `div` 10
 fblockSize = toFloat blockSize
 tapDelay = 0.08
 maxMovesPerSecond = 100
-fps = 100
+fps = 200
 setDelay = 0.5
 
 restartKey : Int
@@ -56,7 +55,7 @@ pieces =
       [Red,  Orange, Yellow, Green,  Blue,   Indigo, Violet]
 
 getPiece : Int -> Piece
-getPiece n = findWithDefault (head pieces) n pieceDict
+getPiece n = getOrElse (head pieces) n pieceDict
 
 game = { board=emptyBoard, 
          init=True,
@@ -301,7 +300,7 @@ gameoverScreenText game =
   let contents = flow down [label "Score: " game.score, 
                           label "Level: " game.level,
                           label "Lines: " game.lines] in
-  let title = text . Text.height 28 . bold . toText <| "Game Over" in
+  let title = leftAligned . Text.height 28 . bold . toText <| "Game Over" in
   flow down [spacer 10 10, title, spacer 50 50, contents, plainText "Press R to play again"]
 
 pauseScreenText game = 
@@ -316,7 +315,7 @@ pauseScreenText game =
                   "P - Toggle this screen",
                   "M - Toggle Music",
                   "R - New Game"] in
-  let title = text . Text.height 28 . bold . toText <| "Elmtris" in
+  let title = leftAligned . Text.height 28 . bold . toText <| "Elmtris" in
   flow down [spacer 10 10, title, spacer 50 50, contents]
 
 
@@ -374,19 +373,6 @@ randoms' n low high sig =
 music g = g.music && (not g.paused)
 click g = g.music && g.click && (not g.paused)
 swapSound g = g.music && g.dropSound && (not g.paused)
-
-
-playTheme = lift (JS.fromBool . music) mainSignal
-foreign export jsevent "play"
-    playTheme : Signal JS.JSBool
-    
-playClick = lift (JS.fromBool . click) mainSignal
-foreign export jsevent "click"
-    playClick : Signal JS.JSBool
-
-playSwap = lift (JS.fromBool . swapSound) mainSignal
-foreign export jsevent "swap"
-    playSwap : Signal JS.JSBool
 
 
 mainSignal = foldp handle game inputSignal

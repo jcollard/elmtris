@@ -1,6 +1,6 @@
 module Tetromino where
 
-import open Location
+import Location (..)
 import Util
 
 -- A Tetromino is a list of Locations. By definition, a valid tetromino

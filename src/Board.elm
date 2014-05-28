@@ -1,8 +1,8 @@
 module Board where
 
 import Tetromino (Tetromino)
-import open Location
-import open TetrisColor
+import Location (..)
+import TetrisColor (..)
 import Dict (Dict, toList, empty)
 import Dict
 

@@ -1,9 +1,9 @@
 module Control where
 
-import open Util
-import open Location
-import open Tetromino
-import open Board
+import Util (..)
+import Location (..)
+import Tetromino (..)
+import Board (..)
 import Dict (empty, insert, member, toList, remove, fromList)
 
 data Control = MoveLeft

@@ -1,6 +1,6 @@
 module TetrisColor where
 
-import open Color
+import Color (..)
 
 data TetrisColor = Red | Orange | Yellow | Green | Blue | Indigo | Violet | Shadow
 
