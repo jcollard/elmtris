@@ -6,15 +6,13 @@ flags = --make --set-runtime=$(runtime) --build-dir=$(build) --src-dir=$(src)
 
 all: compile
 
-compile: build/Tetris.js build/elm/
+compile: build/Tetris.html build/elm/
 
 build/elm/: elm/
 	cp elm/ build/ -r
 
-build/Tetris.js: src/ snd/
-	$(CC) $(flags) -o Tetris.elm
-	cp src/Tetris.html build/Tetris.html
-	cp src/TetrisMusic.js build/TetrisMusic.js
+build/Tetris.html: src/ snd/
+	$(CC) $(flags) Tetris.elm
 	cp snd/ build/snd -r
 
 clean: build

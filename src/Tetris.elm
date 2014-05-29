@@ -1,5 +1,7 @@
 module Tetris where
 
+import Audio
+import Audio(defaultTriggers)
 import Mouse
 import Util (..)
 import Tetromino (..)
@@ -369,19 +371,33 @@ randoms n low high sig = combine <| randoms' n low high sig
 
 randoms' n low high sig =
   if n <= 0 then [] else (range low high sig)::(randoms' (n-1) low high sig)  
-                                               
-music g = g.music && (not g.paused)
-click g = g.music && g.click && (not g.paused)
-swapSound g = g.music && g.dropSound && (not g.paused)
 
-port playTheme : Signal Bool
-port playTheme = lift music mainSignal
+handleTheme g = if g.music && (not g.paused) then Audio.Play else Audio.Pause
 
-port playClick : Signal Bool
-port playClick = lift click mainSignal
+theme =
+    let props p = if p.currentTime > 37.6 then Just (Audio.Seek 0.05) else Nothing 
+        builder = { src = "snd/theme.mp3",
+                    triggers = {defaultTriggers | timeupdate <- True},
+                    propertiesHandler = props,
+                    actions = handleTheme <~ mainSignal }
+    in Audio.audio builder
 
-port playSwap : Signal Bool
-port playSwap = lift swapSound mainSignal
+handleClick g = if g.music && g.click && (not g.paused) then Audio.Play else Audio.NoChange
+
+click =
+    let builder = { src = "snd/click.wav",
+                    triggers = defaultTriggers,
+                    propertiesHandler = (\_ -> Nothing),
+                    actions = handleClick <~ mainSignal }
+    in Audio.audio builder
+
+handleSwap g = if g.music && g.dropSound && (not g.paused) then Audio.Play else Audio.NoChange
+swap =
+    let builder = { src = "snd/woosh.wav",
+                    triggers = defaultTriggers,
+                    propertiesHandler = (\_ -> Nothing),
+                    actions = handleSwap <~ mainSignal }
+    in Audio.audio builder
 
 mainSignal = foldp handle game inputSignal
 
