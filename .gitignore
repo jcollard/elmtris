@@ -1,6 +1,8 @@
-*.*~
-build/
-elm/
-cache/
-Makefile*
+# elm files
+elm-stuff
+elm.js
+
+# Emacs files
+*~
 [#]*
+*[#]
