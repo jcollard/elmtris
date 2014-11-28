@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
     "summary": "Tetris Clone in Elm",
-    "repository": "https://github.com/jcollard/elmtris",
+    "repository": "https://github.com/jcollard/elmtris.git",
     "license": "BSD3",
     "source-directories": [
         "src"
